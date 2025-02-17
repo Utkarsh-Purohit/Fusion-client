@@ -1,20 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { Table, Container, Group, Paper, Button, Text } from "@mantine/core";
-import { useNavigate } from "react-router-dom";
+// import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import AddProduct from "./AddProduct";
 import TransferProduct from "./TransferProduct";
 import "../styles/popupModal.css";
-import { useSelector } from "react-redux";
 
 export default function Inventory() {
   const role = useSelector((state) => state.user.role);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [showTransferProductModal, setShowTransferProductModal] = useState(false);
+  const [showTransferProductModal, setShowTransferProductModal] =
+    useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [inventoryData, setInventoryData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
 
+  console.log(inventoryData);
   const departments = [
     { label: "CSE", value: "CSE" },
     { label: "ECE", value: "ECE" },
@@ -25,10 +27,10 @@ export default function Inventory() {
   ];
 
   const fetchDepartmentData = async () => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem("authToken");
 
     if (!token) {
-      alert('Please log in to add a product');
+      alert("Please log in to add a product");
       return;
     }
 
@@ -36,23 +38,23 @@ export default function Inventory() {
       const response = await fetch(
         `http://127.0.0.1:8000/inventory/api/departments/?department=${selectedDepartment}`,
         {
-          method: 'GET',
+          method: "GET",
           headers: {
             Authorization: `Token ${token}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch department data');
+        throw new Error("Failed to fetch department data");
       }
 
       const data = await response.json();
-      console.log('Department data:', data);
+      console.log("Department data:", data);
       setInventoryData(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching department data:', error);
+      console.error("Error fetching department data:", error);
       setLoading(false);
     }
   };
@@ -61,7 +63,6 @@ export default function Inventory() {
     setLoading(true);
     fetchDepartmentData(selectedDepartment);
   }, [selectedDepartment]);
-
 
   //  const handleTransferClick = () => {
   //    navigate("/inventory/transfer");
@@ -75,22 +76,37 @@ export default function Inventory() {
     setShowAddProductModal(false);
   };
   const openTransferProductModal = () => {
-    setShowTransferProductModal(true);  // Show the modal when "Add Product" is clicked
+    setShowTransferProductModal(true); // Show the modal when "Add Product" is clicked
   };
 
   const closeTransferProductModal = () => {
-    setShowTransferProductModal(false);  // Close the modal when needed
+    setShowTransferProductModal(false); // Close the modal when needed
   };
 
-  const relevantColumns = ["Item", "Quantity"];
+  // const relevantColumns = ["Item", "Quantity"];
 
   return (
     <>
       {/* Breadcrumb */}
       <Text style={{ marginLeft: "70px", fontSize: "16px" }} color="dimmed">
-        <span style={{ cursor: "pointer" }} onClick={() => setSelectedDepartment('')}>
+        <button
+          style={{
+            cursor: "pointer",
+            background: "transparent",
+            border: "none",
+            padding: 0,
+          }}
+          onClick={() => setSelectedDepartment("")}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              setSelectedDepartment("");
+            }
+          }}
+          aria-label="Reset Department"
+        >
           Departments
-        </span>
+        </button>
         {" > "} <span>{selectedDepartment}</span>
       </Text>
 
@@ -147,7 +163,7 @@ export default function Inventory() {
               >
                 CSE
               </Button>
-            ) : role === "deptadmin_ece" || role==="Junior Technician" ? (
+            ) : role === "deptadmin_ece" || role === "Junior Technician" ? (
               <Button
                 style={{
                   fontSize: "14px",
@@ -211,7 +227,8 @@ export default function Inventory() {
                     fontSize: "14px",
                     backgroundColor:
                       selectedDepartment === dept.value ? "#228BE6" : "white",
-                    color: selectedDepartment === dept.value ? "white" : "black",
+                    color:
+                      selectedDepartment === dept.value ? "white" : "black",
                     border: "1px solid #1366D9",
                   }}
                   onClick={() => setSelectedDepartment(dept.value)}
@@ -239,34 +256,60 @@ export default function Inventory() {
           style={{ borderRadius: "12px", marginLeft: "81px", width: "800px" }}
         >
           <div style={{ overflowX: "auto" }}>
-            <Table striped highlightOnHover verticalSpacing="md">
+            <Table
+              style={{
+                width: "100%", // Takes full width of parent container
+                border: "1px solid #ddd",
+                backgroundColor: "transparent", // Ensures it blends with the background
+              }}
+            >
               <thead>
-                <tr>
-                  {relevantColumns.map((col) => (
-                    <th key={col} style={{ fontSize: "20px" }}>
-                      {col.charAt(0).toUpperCase() + col.slice(1)}
-                    </th>
-                  ))}
+                <tr
+                  style={{
+                    backgroundColor: "#f0f0f0",
+                    borderBottom: "2px solid #ddd",
+                  }}
+                >
+                  <th style={{ padding: "15px", border: "1px solid #ddd" }}>
+                    Item
+                  </th>
+                  <th style={{ padding: "15px", border: "1px solid #ddd" }}>
+                    Quantity
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
                     <td
-                      colSpan={relevantColumns.length}
-                      style={{ textAlign: "center" }}
+                      colSpan={2}
+                      style={{ textAlign: "center", padding: "15px" }}
                     >
                       Loading data...
                     </td>
                   </tr>
                 ) : (
-                  inventoryData.map((item, index) => (
-                    <tr key={index}>
-                      {/* <td style={{ textAlign: "center" }}>
-                      {item.department_name}
-                    </td> */}
-                      <td style={{ textAlign: "center" }}>{item.item_name}</td>
-                      <td style={{ textAlign: "center" }}>{item.quantity}</td>
+                  [
+                    { item_name: "Laptop", quantity: 5 },
+                    { item_name: "Mouse", quantity: 20 },
+                    { item_name: "Keyboard", quantity: 15 },
+                    { item_name: "Monitor", quantity: 10 },
+                    { item_name: "Printer", quantity: 3 },
+                  ].map((item, index) => (
+                    <tr
+                      key={index}
+                      style={{
+                        backgroundColor:
+                          index % 2 === 0 ? "#f9f9f9" : "transparent", // Ensures alternating row effect without forcing a white background
+                        borderBottom: "1px solid #ddd",
+                      }}
+                    >
+                      <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                        {item.item_name}
+                      </td>
+                      <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                        {item.quantity}
+                      </td>
                     </tr>
                   ))
                 )}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Table, Container, Group, Paper, Button, Text } from "@mantine/core";
-import { useSelector } from 'react-redux';  // Make sure to import useSelector from redux
+import { useSelector } from "react-redux"; // Make sure to import useSelector from redux
 import AddProduct from "./AddProduct";
 import TransferProduct from "./TransferProduct";
 
@@ -11,8 +11,10 @@ export default function HostelInventory() {
   const [inventoryData, setInventoryData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddProductModal, setShowAddProductModal] = useState(false);
-  const [showTransferProductModal, setShowTransferProductModal] = useState(false);
+  const [showTransferProductModal, setShowTransferProductModal] =
+    useState(false);
 
+  console.log(inventoryData);
   let departments = [
     { label: "H1", value: "H1" },
     { label: "H3", value: "H3" },
@@ -47,7 +49,7 @@ export default function HostelInventory() {
           headers: {
             Authorization: `Token ${token}`,
           },
-        }
+        },
       );
 
       if (!response.ok) {
@@ -77,37 +79,37 @@ export default function HostelInventory() {
   const renderDepartmentLabel = () => {
     switch (role) {
       case "hall1caretaker":
-        departments = [{ label: "H1", value: "H1" }]
+        departments = [{ label: "H1", value: "H1" }];
         return "H1";
       case "hall3caretaker":
-        departments = [{ label: "H3", value: "H3" }]
+        departments = [{ label: "H3", value: "H3" }];
         return "H3";
       case "hall4caretaker":
-        departments = [{ label: "H4", value: "H4" }]
+        departments = [{ label: "H4", value: "H4" }];
         return "H4";
       case "phcaretaker":
-        departments = [{ label: "Panini", value: "Panini" }]
+        departments = [{ label: "Panini", value: "Panini" }];
         return "Panini";
       case "nhcaretaker":
-        departments = [{ label: "Nagarjuna", value: "Nagarjuna" }]
+        departments = [{ label: "Nagarjuna", value: "Nagarjuna" }];
         return "Nagarjuna";
       case "mshcaretaker":
-        departments = [{ label: "Maa Saraswati", value: "Maa Saraswati" }]
+        departments = [{ label: "Maa Saraswati", value: "Maa Saraswati" }];
         return "Maa Saraswati";
       case "rspc_admin":
-        departments = [{ label: "RSPC", value: "RSPC" }]
+        departments = [{ label: "RSPC", value: "RSPC" }];
         return "RSPC";
       case "SectionHead_IWD":
-        departments = [{ label: "IWD", value: "IWD" }]
+        departments = [{ label: "IWD", value: "IWD" }];
         return "IWD";
-        case "mess_manager":
-        departments = [{ label: "Mess", value: "Mess" }]
+      case "mess_manager":
+        departments = [{ label: "Mess", value: "Mess" }];
         return "Academic";
       case "acadadmin":
-        departments = [{ label: "Academic", value: "Academic" }]
+        departments = [{ label: "Academic", value: "Academic" }];
         return "Academic";
       case "VhCaretaker":
-        departments = [{ label: "VH", value: "VH" }]
+        departments = [{ label: "VH", value: "VH" }];
         return "VH";
       default:
         departments = [
@@ -131,12 +133,23 @@ export default function HostelInventory() {
   return (
     <>
       {/* Breadcrumb */}
-      <Text style={{marginLeft:"70px", fontSize:"16px"}} color="dimmed">
-        <span style={{ cursor: "pointer" }} onClick={() => setSelectedDepartment('')}>
+      <Text style={{ marginLeft: "70px", fontSize: "16px" }} color="dimmed">
+        <span
+          style={{ cursor: "pointer" }}
+          onClick={() => setSelectedDepartment("")}
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              setSelectedDepartment("");
+            }
+          }}
+          role="button"
+        >
           Sections
         </span>
         {" > "} <span>{renderDepartmentLabel()}</span>
       </Text>
+
       <Container
         style={{
           marginTop: "20px",
@@ -226,46 +239,90 @@ export default function HostelInventory() {
           }}
         >
           <div style={{ overflowX: "auto" }}>
-            <Table striped highlightOnHover verticalSpacing="md">
-              <thead>
-                <tr>
-                  <th style={{ fontSize: "24px", padding: "16px" }}>Item</th>
-                  <th style={{ fontSize: "24px", padding: "16px" }}>Quantity</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr>
-                    <td colSpan={2} style={{ textAlign: "center" }}>
-                      Loading data...
-                    </td>
-                  </tr>
-                ) : (
-                  inventoryData.map((item, index) => (
-                    <tr key={index}>
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontSize: "14px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {item.item_name}
-                      </td>
-                      <td
-                        style={{
-                          padding: "16px",
-                          fontSize: "14px",
-                          textAlign: "center",
-                        }}
-                      >
-                        {item.quantity}
-                      </td>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                width: "100%",
+                marginTop: "20px",
+              }}
+            >
+              <div style={{ width: "60%", marginLeft: "-17%" }}>
+                {" "}
+                {/* Adjusted more left */}
+                <Table
+                  style={{
+                    width: "100%",
+                    border: "1px solid #ddd",
+                    backgroundColor: "transparent",
+                    textAlign: "center",
+                    margin: "auto",
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        backgroundColor: "#f0f0f0",
+                        borderBottom: "2px solid #ddd",
+                      }}
+                    >
+                      <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                        Item
+                      </th>
+                      <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                        Quantity
+                      </th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </Table>
+                  </thead>
+                  <tbody>
+                    {loading ? (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          style={{ textAlign: "center", padding: "12px" }}
+                        >
+                          Loading data...
+                        </td>
+                      </tr>
+                    ) : (
+                      [
+                        { item_name: "Laptop", quantity: 5 },
+                        { item_name: "Mouse", quantity: 20 },
+                        { item_name: "Keyboard", quantity: 15 },
+                        { item_name: "Monitor", quantity: 10 },
+                        { item_name: "Printer", quantity: 3 },
+                      ].map((item, index) => (
+                        <tr
+                          key={index}
+                          style={{
+                            backgroundColor:
+                              index % 2 === 0 ? "#f9f9f9" : "transparent",
+                            borderBottom: "1px solid #ddd",
+                          }}
+                        >
+                          <td
+                            style={{
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                            }}
+                          >
+                            {item.item_name}
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px",
+                              border: "1px solid #ddd",
+                            }}
+                          >
+                            {item.quantity}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
+              </div>
+            </div>
           </div>
         </Paper>
 
