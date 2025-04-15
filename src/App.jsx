@@ -7,7 +7,7 @@ import { Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Notifications } from "@mantine/notifications";
 import { Layout } from "./components/layout";
 import InventoryIndex from "./Modules/Inventory/components/InventoryIndex";
-
+import HostelInventory from "./Modules/Inventory/components/HostelInventory.jsx";
 // eslint-disable-next-line import/no-unresolved
 import { DesignationsProvider } from "./Modules/Iwd/helper/designationContext";
 import UserBreadcrumbs from "./Modules/Scholarship/user/components/UserBreadcumbs";
@@ -160,6 +160,7 @@ export default function App() {
             </Layout>
           }
         />
+        <Route path="/inventory/section" element={<HostelInventory />} />
         <Route
           path="/placement-cell/apply-placement"
           element={
