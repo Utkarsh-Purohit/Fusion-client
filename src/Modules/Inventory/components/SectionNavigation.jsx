@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo, useEffect } from "react";
 import { Text, Button, Flex, Tabs } from "@mantine/core";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import Reports from "./Reports";
 import Department from "./Bdes";
 import InventoryRequests from "./InventoryRequests";
 
+// Mapping between section names and their corresponding components
 const sectionComponents = {
   "Overall Inventory": InventoryDashboard,
   Section: HostelInventory,
@@ -19,52 +20,66 @@ const sectionComponents = {
 };
 
 export default function SectionNavigation() {
-  const [activeSection, setActiveSection] = useState("Overall Inventory");
-  const [activeTab, setActiveTab] = useState("0");
-  const tabsListRef = useRef(null); // Reference for scrollable tabs
   const role = useSelector((state) => state.user.role);
+  const tabsListRef = useRef(null);
 
-  // Define sections based on role
-  const sections =
-    role === "ps_admin"
-      ? ["Overall Inventory", "Section", "Department", "Requests", "Reports"]
-      : role === "deptadmin_ece" || role === "Junior Technician"
-        ? ["Department"]
-        : role === "deptadmin_cse"
-          ? ["Department"]
-          : role === "deptadmin_me"
-            ? ["Department"]
-            : role === "deptadmin_sm"
-              ? ["Department"]
-              : role === "deptadmin_design"
-                ? ["Department"]
-                : role === "Hostel_admin" || role === "hall1caretaker"
-                  ? ["Section"] // Role "hall1caretaker" shows "h1"
-                  : role === "hall3caretaker"
-                    ? ["Section"] // Role "hall3caretaker" shows "h3"
-                    : role === "hall4caretaker"
-                      ? ["Section"] // Role "hall4caretaker" shows "h4"
-                      : role === "phcaretaker"
-                        ? ["Section"] // Role "phcaretaker" shows "panini"
-                        : role === "nhcaretaker"
-                          ? ["Section"] // Role "nhcaretaker" shows "nagarjuna"
-                          : role === "mshcaretaker"
-                            ? ["Section"] // Role "mshcaretaker" shows "maa saraswati"
-                            : role === "rspc_admin"
-                              ? ["Section"] // Role "rspc_admin" shows "rspc"
-                              : role === "SectionHead_IWD"
-                                ? ["Section"] // Role "SectionHead_IWD" shows "iwd"
-                                : role === "acadadmin"
-                                  ? ["Section"] // Role "acadadmin" shows "academic"
-                                  : role === "VhCaretaker"
-                                    ? ["Section"] // Role "VhCaretaker" shows "vh"
-                                    : [];
+  // Dynamically determine available sections based on role
+  const sections = useMemo(() => {
+    if (role === "ps_admin") {
+      return [
+        "Overall Inventory",
+        "Section",
+        "Department",
+        "Requests",
+        "Reports",
+      ];
+    }
+    if (
+      [
+        "deptadmin_ece",
+        "deptadmin_cse",
+        "deptadmin_me",
+        "deptadmin_sm",
+        "deptadmin_design",
+        "Junior Technician",
+      ].includes(role)
+    ) {
+      return ["Department"];
+    }
+    if (
+      [
+        "Hostel_admin",
+        "hall1caretaker",
+        "hall3caretaker",
+        "hall4caretaker",
+        "phcaretaker",
+        "nhcaretaker",
+        "mshcaretaker",
+        "rspc_admin",
+        "SectionHead_IWD",
+        "acadadmin",
+        "VhCaretaker",
+      ].includes(role)
+    ) {
+      return ["Section"];
+    }
+    return [];
+  }, [role]);
+
+  const [activeTab, setActiveTab] = useState("0");
+  const [activeSection, setActiveSection] = useState(sections[0] || "");
+
+  // Ensure when sections change (role changes), activeSection resets
+  useEffect(() => {
+    setActiveSection(sections[0] || "");
+    setActiveTab("0");
+  }, [sections]);
 
   const tabItems = sections.map((section) => ({ title: section }));
 
   const handleTabChange = (tabIndex) => {
     setActiveTab(tabIndex);
-    setActiveSection(sections[+tabIndex]); // Ensure the active section is correctly updated
+    setActiveSection(sections[+tabIndex]);
   };
 
   const handleArrowClick = (direction) => {
@@ -73,7 +88,7 @@ export default function SectionNavigation() {
         ? Math.min(+activeTab + 1, tabItems.length - 1)
         : Math.max(+activeTab - 1, 0);
     setActiveTab(String(newIndex));
-    setActiveSection(sections[newIndex]); // Update active section for arrow navigation
+    setActiveSection(sections[newIndex]);
 
     if (tabsListRef.current) {
       tabsListRef.current.scrollBy({
