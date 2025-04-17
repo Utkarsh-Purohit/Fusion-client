@@ -189,7 +189,7 @@ export default function Inventory() {
             </Button>
           </Group>
         ) : (
-          <Group position="center" style={{ marginBottom: "20px" }}>
+          <Group justify="center" style={{ marginBottom: "20px" }}>
             <Button
               variant="filled"
               color="blue"
