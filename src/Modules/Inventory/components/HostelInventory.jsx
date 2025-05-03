@@ -187,16 +187,16 @@ export default function HostelInventory() {
       />
 
       {/* Action Buttons */}
-      {role === "ps_admin" ? (
-        <Group
-          position="center"
-          style={{
-            marginBottom: "20px",
-            gap: "10px",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
+      <Group
+        position="center"
+        style={{
+          marginBottom: "20px",
+          gap: "10px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        {role === "ps_admin" && (
           <Button
             variant="filled"
             color="blue"
@@ -205,24 +205,16 @@ export default function HostelInventory() {
           >
             Transfer Item
           </Button>
-          <Button
-            variant="filled"
-            color="blue"
-            onClick={openAddProductModal}
-            size="md"
-          >
-            Add Product
-          </Button>
-        </Group>
-      ) : (
-        <Group
-          position="center"
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "center",
-          }}
+        )}
+        <Button
+          variant="filled"
+          color="blue"
+          onClick={openAddProductModal}
+          size="md"
         >
+          Add Product
+        </Button>
+        {role !== "ps_admin" && (
           <Button
             variant="filled"
             color="blue"
@@ -231,8 +223,8 @@ export default function HostelInventory() {
           >
             Request Product
           </Button>
-        </Group>
-      )}
+        )}
+      </Group>
 
       {/* Inventory Table */}
       <ScrollArea style={{ width: "90%", margin: "20px auto" }}>
@@ -414,17 +406,15 @@ export default function HostelInventory() {
                   <Text size="md" color="dimmed">
                     No inventory items found
                   </Text>
-                  {role === "ps_admin" && (
-                    <Button
-                      variant="light"
-                      color="blue"
-                      size="sm"
-                      mt="sm"
-                      onClick={openAddProductModal}
-                    >
-                      Add First Item
-                    </Button>
-                  )}
+                  <Button
+                    variant="light"
+                    color="blue"
+                    size="sm"
+                    mt="sm"
+                    onClick={openAddProductModal}
+                  >
+                    Add First Item
+                  </Button>
                 </td>
               </tr>
             )}
@@ -432,8 +422,8 @@ export default function HostelInventory() {
         </Table>
       </ScrollArea>
 
-      {/* Modals */}
-      {role === "ps_admin" && showAddProductModal && (
+      {/* Add Product Modal (visible to all roles) */}
+      {showAddProductModal && (
         <>
           <div
             style={{
@@ -495,6 +485,7 @@ export default function HostelInventory() {
         </>
       )}
 
+      {/* Transfer Product Modal (only for ps_admin) */}
       {role === "ps_admin" && showTransferProductModal && (
         <>
           <div
@@ -556,6 +547,7 @@ export default function HostelInventory() {
         </>
       )}
 
+      {/* Request Product Modal (for non-ps_admin roles) */}
       {role !== "ps_admin" && showRequestProductModal && (
         <>
           <div

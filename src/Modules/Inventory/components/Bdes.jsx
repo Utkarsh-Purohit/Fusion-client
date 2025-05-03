@@ -159,16 +159,16 @@ export default function Inventory() {
       )}
 
       {/* Action Buttons */}
-      {isDefaultRole ? (
-        <Group
-          position="center"
-          style={{
-            marginBottom: "20px",
-            gap: "10px",
-            display: "flex",
-            justifyContent: "center",
-          }}
-        >
+      <Group
+        position="center"
+        style={{
+          marginBottom: "20px",
+          gap: "10px",
+          display: "flex",
+          justifyContent: "center",
+        }}
+      >
+        {isDefaultRole && (
           <Button
             variant="filled"
             color="blue"
@@ -177,24 +177,16 @@ export default function Inventory() {
           >
             Transfer Item
           </Button>
-          <Button
-            variant="filled"
-            color="blue"
-            onClick={openAddProductModal}
-            size="md"
-          >
-            Add Product
-          </Button>
-        </Group>
-      ) : (
-        <Group
-          position="center"
-          style={{
-            marginBottom: "20px",
-            display: "flex",
-            justifyContent: "center",
-          }}
+        )}
+        <Button
+          variant="filled"
+          color="blue"
+          onClick={openAddProductModal}
+          size="md"
         >
+          Add Product
+        </Button>
+        {!isDefaultRole && (
           <Button
             variant="filled"
             color="blue"
@@ -203,8 +195,8 @@ export default function Inventory() {
           >
             Request Product
           </Button>
-        </Group>
-      )}
+        )}
+      </Group>
 
       {/* Inventory Table */}
       <ScrollArea style={{ width: "90%", margin: "20px auto" }}>
@@ -386,17 +378,15 @@ export default function Inventory() {
                   <Text size="md" color="dimmed">
                     No inventory items found
                   </Text>
-                  {isDefaultRole && (
-                    <Button
-                      variant="light"
-                      color="blue"
-                      size="sm"
-                      mt="sm"
-                      onClick={openAddProductModal}
-                    >
-                      Add First Item
-                    </Button>
-                  )}
+                  <Button
+                    variant="light"
+                    color="blue"
+                    size="sm"
+                    mt="sm"
+                    onClick={openAddProductModal}
+                  >
+                    Add First Item
+                  </Button>
                 </td>
               </tr>
             )}
@@ -404,8 +394,8 @@ export default function Inventory() {
         </Table>
       </ScrollArea>
 
-      {/* Modals */}
-      {isDefaultRole && showAddProductModal && (
+      {/* Add Product Modal (visible to all roles) */}
+      {showAddProductModal && (
         <>
           <div
             style={{
@@ -467,6 +457,7 @@ export default function Inventory() {
         </>
       )}
 
+      {/* Transfer Product Modal (only for default roles) */}
       {isDefaultRole && showTransferProductModal && (
         <>
           <div
@@ -528,6 +519,7 @@ export default function Inventory() {
         </>
       )}
 
+      {/* Request Product Modal (for non-default roles) */}
       {!isDefaultRole && showRequestProductModal && (
         <>
           <div
