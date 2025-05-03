@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Table, Group, Button, Text, Select, ScrollArea } from "@mantine/core";
+import {
+  Table,
+  Group,
+  Button,
+  Text,
+  Select,
+  ScrollArea,
+  Tooltip,
+  Badge,
+} from "@mantine/core";
 import { useSelector } from "react-redux";
 import AddProduct from "./AddProduct";
 import TransferProduct from "./TransferProduct";
@@ -226,27 +235,77 @@ export default function HostelInventory() {
       )}
 
       {/* Inventory Table */}
-
-      <ScrollArea style={{ width: "80%", margin: "0 auto" }}>
+      <ScrollArea style={{ width: "90%", margin: "20px auto" }}>
         <Table
+          striped
+          highlightOnHover
+          verticalSpacing="md"
+          horizontalSpacing="lg"
+          fontSize="sm"
           style={{
-            width: "100%",
-            border: "1px solid #ddd",
-            borderCollapse: "collapse",
+            backgroundColor: "white",
+            borderRadius: "8px",
+            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+            border: "1px solid #e0e0e0",
           }}
         >
           <thead>
-            <tr
-              style={{
-                backgroundColor: "#f0f0f0",
-                borderBottom: "2px solid #ddd",
-              }}
-            >
-              <th style={{ padding: "15px", border: "1px solid #ddd" }}>
+            <tr style={{ backgroundColor: "#f8f9fa" }}>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                }}
+              >
                 Item
               </th>
-              <th style={{ padding: "15px", border: "1px solid #ddd" }}>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                  textAlign: "center",
+                }}
+              >
                 Quantity
+              </th>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                  textAlign: "right",
+                }}
+              >
+                Price
+              </th>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                }}
+              >
+                Purchase Date
+              </th>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                }}
+              >
+                Indent ID
+              </th>
+              <th
+                style={{
+                  padding: "16px",
+                  border: "1px solid #e0e0e0",
+                  fontWeight: 600,
+                }}
+              >
+                Specifications
               </th>
             </tr>
           </thead>
@@ -254,46 +313,120 @@ export default function HostelInventory() {
             {loading ? (
               <tr>
                 <td
-                  colSpan={2}
+                  colSpan={6}
                   style={{
                     textAlign: "center",
-                    padding: "20px",
-                    fontSize: "16px",
-                    color: "#666",
+                    padding: "40px",
+                    border: "1px solid #e0e0e0",
                   }}
                 >
-                  Loading data...
+                  <Text size="md" color="dimmed">
+                    Loading inventory data...
+                  </Text>
                 </td>
               </tr>
-            ) : (
+            ) : inventoryData.length > 0 ? (
               inventoryData.map((item, index) => (
-                <tr
-                  key={index}
-                  style={{
-                    borderBottom: "1px solid #ddd",
-                    backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
-                  }}
-                >
+                <tr key={index}>
                   <td
                     style={{
-                      padding: "15px",
-                      border: "1px solid #ddd",
-                      textAlign: "center",
+                      padding: "16px",
+                      border: "1px solid #e0e0e0",
+                      fontWeight: 500,
                     }}
                   >
                     {item.item_name}
                   </td>
                   <td
                     style={{
-                      padding: "15px",
-                      border: "1px solid #ddd",
+                      padding: "16px",
+                      border: "1px solid #e0e0e0",
                       textAlign: "center",
                     }}
                   >
-                    {item.quantity}
+                    <Badge
+                      color={item.quantity < 5 ? "red" : "blue"}
+                      variant="light"
+                      radius="sm"
+                    >
+                      {item.quantity}
+                    </Badge>
+                  </td>
+                  <td
+                    style={{
+                      padding: "16px",
+                      border: "1px solid #e0e0e0",
+                      textAlign: "right",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {item.price ? (
+                      <Text>₹{parseFloat(item.price).toFixed(2)}</Text>
+                    ) : (
+                      <Text color="dimmed">N/A</Text>
+                    )}
+                  </td>
+                  <td style={{ padding: "16px", border: "1px solid #e0e0e0" }}>
+                    {item.date_of_purchase ? (
+                      <Text>
+                        {new Date(item.date_of_purchase).toLocaleDateString()}
+                      </Text>
+                    ) : (
+                      <Text color="dimmed">N/A</Text>
+                    )}
+                  </td>
+                  <td style={{ padding: "16px", border: "1px solid #e0e0e0" }}>
+                    {item.indent_id || <Text color="dimmed">N/A</Text>}
+                  </td>
+                  <td
+                    style={{
+                      padding: "16px",
+                      border: "1px solid #e0e0e0",
+                      maxWidth: "200px",
+                    }}
+                  >
+                    {item.specifications ? (
+                      <Tooltip
+                        label={item.specifications}
+                        withArrow
+                        withinPortal
+                      >
+                        <Text lineClamp={1} style={{ cursor: "help" }}>
+                          {item.specifications}
+                        </Text>
+                      </Tooltip>
+                    ) : (
+                      <Text color="dimmed">N/A</Text>
+                    )}
                   </td>
                 </tr>
               ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={6}
+                  style={{
+                    textAlign: "center",
+                    padding: "40px",
+                    border: "1px solid #e0e0e0",
+                  }}
+                >
+                  <Text size="md" color="dimmed">
+                    No inventory items found
+                  </Text>
+                  {role === "ps_admin" && (
+                    <Button
+                      variant="light"
+                      color="blue"
+                      size="sm"
+                      mt="sm"
+                      onClick={openAddProductModal}
+                    >
+                      Add First Item
+                    </Button>
+                  )}
+                </td>
+              </tr>
             )}
           </tbody>
         </Table>
