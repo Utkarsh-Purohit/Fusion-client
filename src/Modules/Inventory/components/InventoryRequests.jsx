@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { Button, Group, Table, Badge, Select } from "@mantine/core";
+import { Button, Group, Table, Badge, Select, Pagination } from "@mantine/core";
 import { InventoryRequest } from "../../../routes/inventoryRoutes";
 
 function InventoryRequests() {
   const [filter, setFilter] = useState("all");
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [requests, setRequests] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
   const token = localStorage.getItem("authToken");
 
   useEffect(() => {
@@ -83,6 +85,12 @@ function InventoryRequests() {
     }
   });
 
+  const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
     <div
       style={{
@@ -108,7 +116,10 @@ function InventoryRequests() {
             { value: "unapproved", label: "Unapproved" },
           ]}
           value={filter}
-          onChange={setFilter}
+          onChange={(val) => {
+            setFilter(val);
+            setCurrentPage(1);
+          }}
           style={{ marginBottom: "20px", width: "80%" }}
         />
       ) : (
@@ -116,7 +127,10 @@ function InventoryRequests() {
           {["all", "approved", "pending", "unapproved"].map((f) => (
             <Button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => {
+                setFilter(f);
+                setCurrentPage(1);
+              }}
               variant={filter === f ? "filled" : "outline"}
               style={{ margin: "0 5px" }}
             >
@@ -128,16 +142,16 @@ function InventoryRequests() {
 
       <div
         style={{
-          width: "80%",
+          width: "90%",
           overflowX: "auto",
-          maxHeight: "500px", // Adjust height as needed
+          maxHeight: "500px",
           overflowY: "auto",
           border: "1px solid #ddd",
         }}
       >
         <Table
           style={{
-            minWidth: "1000px", // Ensures the table doesn't shrink too much
+            minWidth: "1000px",
             borderCollapse: "collapse",
           }}
         >
@@ -169,78 +183,85 @@ function InventoryRequests() {
             </tr>
           </thead>
           <tbody>
-            {filteredRequests.map((request, index) => {
-              return (
-                <tr
-                  key={index}
+            {paginatedRequests.map((request, index) => (
+              <tr
+                key={index}
+                style={{
+                  backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
+                  borderBottom: "1px solid #ddd",
+                }}
+              >
+                <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                  {new Date(request.date).toLocaleDateString()}
+                </td>
+                <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                  {request.item_name}
+                </td>
+                <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                  {request.department_name}
+                </td>
+                <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                  {request.purpose}
+                </td>
+                <td style={{ padding: "15px", border: "1px solid #ddd" }}>
+                  {request.specifications}
+                </td>
+                <td
                   style={{
-                    backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
-                    borderBottom: "1px solid #ddd",
+                    padding: "15px",
+                    border: "1px solid #ddd",
+                    textAlign: "center",
                   }}
                 >
-                  <td style={{ padding: "15px", border: "1px solid #ddd" }}>
-                    {new Date(request.date).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: "15px", border: "1px solid #ddd" }}>
-                    {request.item_name}
-                  </td>
-                  <td style={{ padding: "15px", border: "1px solid #ddd" }}>
-                    {request.department_name}
-                  </td>
-                  <td style={{ padding: "15px", border: "1px solid #ddd" }}>
-                    {request.purpose}
-                  </td>
-                  <td style={{ padding: "15px", border: "1px solid #ddd" }}>
-                    {request.specifications}
-                  </td>
-                  <td
-                    style={{
-                      padding: "15px",
-                      border: "1px solid #ddd",
-                      textAlign: "center",
-                    }}
+                  <Badge
+                    color={
+                      request.approval_status.toUpperCase() === "APPROVED"
+                        ? "green"
+                        : request.approval_status.toUpperCase() === "PENDING"
+                          ? "yellow"
+                          : "red"
+                    }
                   >
-                    <Badge
-                      color={
-                        request.approval_status.toUpperCase() === "APPROVED"
-                          ? "green"
-                          : request.approval_status.toUpperCase() === "PENDING"
-                            ? "yellow"
-                            : "red"
-                      }
-                    >
-                      {request.approval_status.toUpperCase()}
-                    </Badge>
-                    {request.approval_status.toUpperCase() === "PENDING" && (
-                      <div style={{ marginTop: "5px" }}>
-                        <Button
-                          size="xs"
-                          color="green"
-                          onClick={() =>
-                            handleStatusChange(request.request_id, "APPROVED")
-                          }
-                          style={{ marginRight: "5px" }}
-                        >
-                          ✓
-                        </Button>
-                        <Button
-                          size="xs"
-                          color="red"
-                          onClick={() =>
-                            handleStatusChange(request.request_id, "UNAPPROVED")
-                          }
-                        >
-                          ✗
-                        </Button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+                    {request.approval_status.toUpperCase()}
+                  </Badge>
+                  {request.approval_status.toUpperCase() === "PENDING" && (
+                    <div style={{ marginTop: "5px" }}>
+                      <Button
+                        size="xs"
+                        color="green"
+                        onClick={() =>
+                          handleStatusChange(request.request_id, "APPROVED")
+                        }
+                        style={{ marginRight: "5px" }}
+                      >
+                        ✓
+                      </Button>
+                      <Button
+                        size="xs"
+                        color="red"
+                        onClick={() =>
+                          handleStatusChange(request.request_id, "UNAPPROVED")
+                        }
+                      >
+                        ✗
+                      </Button>
+                    </div>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </Table>
       </div>
+
+      {totalPages > 1 && (
+        <Pagination
+          total={totalPages}
+          page={currentPage}
+          onChange={setCurrentPage}
+          style={{ marginTop: "20px" }}
+        />
+      )}
     </div>
   );
 }

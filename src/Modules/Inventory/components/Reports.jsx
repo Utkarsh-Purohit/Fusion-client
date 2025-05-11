@@ -7,6 +7,10 @@ import {
   Group,
   Text,
   ScrollArea,
+  Pagination,
+  Paper,
+  Box,
+  Badge,
 } from "@mantine/core";
 
 const departments = [
@@ -294,6 +298,8 @@ export default function InventoryReport() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 7;
 
   const filteredData = inventoryData.filter((item) => {
     const matchesSearch = item.product
@@ -310,29 +316,29 @@ export default function InventoryReport() {
     return matchesSearch && matchesDepartment;
   });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const paginatedItems = filteredData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
-    <div
-      style={{
-        maxWidth: "1200px",
-        margin: "auto",
-        padding: "20px",
-        height: "70vh",
-        overflowY: "auto",
-      }}
-    >
+    <Box p="md" style={{ maxWidth: "1200px", margin: "auto" }}>
       <Group position="center" mb="xl">
         <Text size="xl" weight={700} color="blue">
           Inventory Report
         </Text>
       </Group>
 
-      {/* Replace the individual filter components with this Group */}
       <Group position="apart" mb="xl" grow>
         <TextInput
           placeholder="Search by product name"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          style={{ marginRight: "20px" }}
+          onChange={(e) => {
+            setSearchQuery(e.target.value);
+            setCurrentPage(1); // Reset to first page when searching
+          }}
         />
 
         <Select
@@ -341,206 +347,232 @@ export default function InventoryReport() {
             ...departments.map((dept) => ({ value: dept, label: dept })),
           ]}
           value={selectedDepartment}
-          onChange={setSelectedDepartment}
+          onChange={(value) => {
+            setSelectedDepartment(value);
+            setCurrentPage(1); // Reset to first page when filtering
+          }}
           placeholder="Filter by department"
           clearable
         />
       </Group>
 
-      {/* Main Table Container with ScrollArea */}
-      <ScrollArea style={{ height: "70vh", marginBottom: "20px" }}>
-        <Table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            overflowY: "auto",
-          }}
-        >
-          <thead>
-            <tr
-              style={{
-                backgroundColor: "#f0f0f0",
-                borderBottom: "2px solid #ddd",
-              }}
-            >
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>
-                Product
-              </th>
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>
-                Quantity
-              </th>
-              <th style={{ padding: "10px", border: "1px solid #ddd" }}>
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item, index) => (
-              <React.Fragment key={index}>
-                <tr
-                  style={{
-                    backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
-                    borderBottom: "1px solid #ddd",
-                  }}
-                >
-                  <td style={{ padding: "10px", border: "1px solid #ddd" }}>
-                    {item.product}
-                  </td>
-                  <td style={{ padding: "10px", border: "1px solid #ddd" }}>
-                    {item.quantity}
-                  </td>
-                  <td
+      <Paper withBorder style={{ borderRadius: "8px", overflow: "hidden" }}>
+        <ScrollArea>
+          <Table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr
+                style={{
+                  backgroundColor: "#f0f0f0",
+                  borderBottom: "2px solid #ddd",
+                }}
+              >
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Product
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Quantity
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {paginatedItems.map((item, index) => (
+                <React.Fragment key={index}>
+                  <tr
                     style={{
-                      padding: "10px",
-                      border: "1px solid #ddd",
-                      textAlign: "center",
-                      verticalAlign: "middle",
+                      backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
+                      borderBottom: "1px solid #ddd",
                     }}
                   >
-                    <Button
-                      variant="light"
-                      color="blue"
-                      size="xs"
-                      onClick={() =>
-                        setSelectedProduct(
-                          selectedProduct === item.product
-                            ? null
-                            : item.product,
-                        )
-                      }
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      <Text weight={500}>{item.product}</Text>
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      <Badge
+                        color={item.quantity > 0 ? "blue" : "red"}
+                        variant="light"
+                        style={{ minWidth: "60px" }}
+                      >
+                        {item.quantity}
+                      </Badge>
+                    </td>
+                    <td
+                      style={{
+                        padding: "12px",
+                        border: "1px solid #ddd",
+                        textAlign: "center",
+                      }}
                     >
-                      {selectedProduct === item.product
-                        ? "Hide Details"
-                        : "View Details"}
-                    </Button>
+                      <Button
+                        variant="light"
+                        color="blue"
+                        size="xs"
+                        onClick={() =>
+                          setSelectedProduct(
+                            selectedProduct === item.product
+                              ? null
+                              : item.product,
+                          )
+                        }
+                      >
+                        {selectedProduct === item.product
+                          ? "Hide Details"
+                          : "View Details"}
+                      </Button>
+                    </td>
+                  </tr>
+                  {selectedProduct === item.product &&
+                    productDetails[item.product] && (
+                      <tr>
+                        <td colSpan={3}>
+                          <ScrollArea
+                            style={{ maxHeight: "300px", margin: "10px 0" }}
+                          >
+                            <Table
+                              style={{
+                                width: "100%",
+                                borderCollapse: "collapse",
+                              }}
+                            >
+                              <thead>
+                                <tr
+                                  style={{
+                                    backgroundColor: "#e0e0e0",
+                                    borderBottom: "2px solid #ddd",
+                                  }}
+                                >
+                                  <th
+                                    style={{
+                                      padding: "12px",
+                                      border: "1px solid #ddd",
+                                    }}
+                                  >
+                                    Purchase ID
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: "12px",
+                                      border: "1px solid #ddd",
+                                    }}
+                                  >
+                                    Date of Issue
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: "12px",
+                                      border: "1px solid #ddd",
+                                    }}
+                                  >
+                                    Department
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: "12px",
+                                      border: "1px solid #ddd",
+                                    }}
+                                  >
+                                    Specification
+                                  </th>
+                                  <th
+                                    style={{
+                                      padding: "12px",
+                                      border: "1px solid #ddd",
+                                    }}
+                                  >
+                                    Supplier Name
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {productDetails[item.product].map(
+                                  (detail, i) => (
+                                    <tr
+                                      key={i}
+                                      style={{
+                                        backgroundColor:
+                                          i % 2 === 0 ? "#f9f9f9" : "#fff",
+                                        borderBottom: "1px solid #ddd",
+                                      }}
+                                    >
+                                      <td
+                                        style={{
+                                          padding: "12px",
+                                          border: "1px solid #ddd",
+                                        }}
+                                      >
+                                        {detail.purchaseId}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "12px",
+                                          border: "1px solid #ddd",
+                                        }}
+                                      >
+                                        {detail.issueDate}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "12px",
+                                          border: "1px solid #ddd",
+                                        }}
+                                      >
+                                        {detail.department}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "12px",
+                                          border: "1px solid #ddd",
+                                        }}
+                                      >
+                                        {detail.specification}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: "12px",
+                                          border: "1px solid #ddd",
+                                        }}
+                                      >
+                                        {detail.supplier}
+                                      </td>
+                                    </tr>
+                                  ),
+                                )}
+                              </tbody>
+                            </Table>
+                          </ScrollArea>
+                        </td>
+                      </tr>
+                    )}
+                </React.Fragment>
+              ))}
+              {paginatedItems.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={3}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    <Text color="dimmed">No inventory items found</Text>
                   </td>
                 </tr>
-                {selectedProduct === item.product &&
-                  productDetails[item.product] && (
-                    <tr>
-                      <td colSpan={3}>
-                        {/* Nested Table Container with ScrollArea */}
-                        <ScrollArea
-                          style={{ maxHeight: "100vh", margin: "10px 0" }}
-                        >
-                          <Table
-                            style={{
-                              width: "100%",
-                              borderCollapse: "collapse",
-                            }}
-                          >
-                            <thead>
-                              <tr
-                                style={{
-                                  backgroundColor: "#e0e0e0",
-                                  borderBottom: "2px solid #ddd",
-                                }}
-                              >
-                                <th
-                                  style={{
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                  }}
-                                >
-                                  Purchase ID
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                  }}
-                                >
-                                  Date of Issue
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                  }}
-                                >
-                                  Department
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                  }}
-                                >
-                                  Specification
-                                </th>
-                                <th
-                                  style={{
-                                    padding: "10px",
-                                    border: "1px solid #ddd",
-                                  }}
-                                >
-                                  Supplier Name
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {productDetails[item.product].map((detail, i) => (
-                                <tr
-                                  key={i}
-                                  style={{
-                                    backgroundColor:
-                                      i % 2 === 0 ? "#f9f9f9" : "#fff",
-                                    borderBottom: "1px solid #ddd",
-                                  }}
-                                >
-                                  <td
-                                    style={{
-                                      padding: "10px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    {detail.purchaseId}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "10px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    {detail.issueDate}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "10px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    {detail.department}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "10px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    {detail.specification}
-                                  </td>
-                                  <td
-                                    style={{
-                                      padding: "10px",
-                                      border: "1px solid #ddd",
-                                    }}
-                                  >
-                                    {detail.supplier}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </Table>
-                        </ScrollArea>
-                      </td>
-                    </tr>
-                  )}
-              </React.Fragment>
-            ))}
-          </tbody>
-        </Table>
-      </ScrollArea>
-    </div>
+              )}
+            </tbody>
+          </Table>
+        </ScrollArea>
+      </Paper>
+
+      {totalPages > 1 && (
+        <Group position="center" mt="md">
+          <Pagination
+            total={totalPages}
+            page={currentPage}
+            onChange={setCurrentPage}
+            size="sm"
+            withEdges
+          />
+        </Group>
+      )}
+    </Box>
   );
 }

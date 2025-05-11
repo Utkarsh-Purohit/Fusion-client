@@ -8,12 +8,24 @@ import {
   ScrollArea,
   Tooltip,
   Badge,
+  NumberInput,
+  ActionIcon,
+  Modal,
+  Box,
+  LoadingOverlay,
+  Paper,
+  Pagination,
 } from "@mantine/core";
 import { useSelector } from "react-redux";
+import { notifications } from "@mantine/notifications";
+import { IconArrowBack } from "@tabler/icons-react";
 import AddProduct from "./AddProduct";
 import TransferProduct from "./TransferProduct";
 import RequestProduct from "./RequestProduct";
-import { InventoryDepartments } from "../../../routes/inventoryRoutes";
+import {
+  InventoryDepartments,
+  InventoryReturn,
+} from "../../../routes/inventoryRoutes";
 
 export default function Inventory() {
   const role = useSelector((state) => state.user.role);
@@ -24,6 +36,11 @@ export default function Inventory() {
   const [showTransferProductModal, setShowTransferProductModal] =
     useState(false);
   const [showRequestProductModal, setShowRequestProductModal] = useState(false);
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [selectedReturnItem, setSelectedReturnItem] = useState(null);
+  const [returnQuantity, setReturnQuantity] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   const departments = [
     { label: "CSE", value: "CSE" },
@@ -34,7 +51,6 @@ export default function Inventory() {
     { label: "Design", value: "Design" },
   ];
 
-  // Returns the appropriate department label and customizes the department list based on role.
   const renderDepartmentLabel = () => {
     switch (role) {
       case "deptadmin_cse":
@@ -53,7 +69,6 @@ export default function Inventory() {
     }
   };
 
-  // Auto-set the department if not already selected.
   useEffect(() => {
     if (!selectedDepartment) {
       setSelectedDepartment(renderDepartmentLabel());
@@ -63,28 +78,32 @@ export default function Inventory() {
   const fetchDepartmentData = async () => {
     const token = localStorage.getItem("authToken");
     if (!token) {
-      alert("Please log in to view inventory");
+      notifications.show({
+        title: "Error",
+        message: "Please log in to view inventory",
+        color: "red",
+      });
       return;
     }
     setLoading(true);
     try {
-      const response = await fetch(
-        InventoryDepartments(`${selectedDepartment}`),
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Token ${token}`,
-          },
+      const response = await fetch(InventoryDepartments(selectedDepartment), {
+        method: "GET",
+        headers: {
+          Authorization: `Token ${token}`,
         },
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch department data");
-      }
+      });
+      if (!response.ok) throw new Error("Failed to fetch department data");
       const data = await response.json();
       setInventoryData(data);
-      setLoading(false);
     } catch (error) {
       console.error("Error fetching department data: ", error);
+      notifications.show({
+        title: "Error",
+        message: "Failed to load inventory data",
+        color: "red",
+      });
+    } finally {
       setLoading(false);
     }
   };
@@ -95,7 +114,67 @@ export default function Inventory() {
     }
   }, [selectedDepartment]);
 
-  // Modal open/close functions
+  const handleReturnItem = async () => {
+    if (!selectedReturnItem) return;
+
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      notifications.show({
+        title: "Error",
+        message: "Please log in to return items",
+        color: "red",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(InventoryReturn, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Token ${token}`,
+        },
+        body: JSON.stringify({
+          item_name: selectedReturnItem.item_name,
+          quantity_returned: returnQuantity,
+          department_name: selectedDepartment,
+          price: selectedReturnItem.price,
+          specifications: selectedReturnItem.specifications,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to return item");
+      }
+
+      notifications.show({
+        title: "Success",
+        message: `${returnQuantity} ${selectedReturnItem.item_name}(s) returned successfully`,
+        color: "green",
+      });
+      setShowReturnModal(false);
+      fetchDepartmentData();
+    } catch (error) {
+      notifications.show({
+        title: "Return Failed",
+        message: error.message,
+        color: "red",
+      });
+    }
+  };
+
+  const openReturnModal = (item) => {
+    setSelectedReturnItem(item);
+    setReturnQuantity(1);
+    setShowReturnModal(true);
+  };
+
+  const closeReturnModal = () => {
+    setShowReturnModal(false);
+    setSelectedReturnItem(null);
+  };
+
   const openAddProductModal = () => setShowAddProductModal(true);
   const closeAddProductModal = () => setShowAddProductModal(false);
   const openTransferProductModal = () => setShowTransferProductModal(true);
@@ -112,35 +191,23 @@ export default function Inventory() {
     "deptadmin_design",
   ].includes(role);
 
-  return (
-    <>
-      {/* Breadcrumb */}
-      <Text style={{ marginLeft: "70px", fontSize: "16px" }} color="dimmed">
-        <span
-          style={{ cursor: "pointer" }}
-          onClick={() => setSelectedDepartment("")}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") setSelectedDepartment("");
-          }}
-        >
-          Departments
-        </span>
-        {" > "} <span>{renderDepartmentLabel()}</span>
-      </Text>
+  // Filter out items with zero quantity
+  const availableItems = inventoryData.filter((item) => item.quantity > 0);
 
-      <Text
-        align="center"
-        style={{
-          fontSize: "26px",
-          marginBottom: "20px",
-          fontWeight: 600,
-          color: "#228BE6",
-        }}
-      >
-        {renderDepartmentLabel()} Department Inventory
-      </Text>
+  // Pagination Logic
+  const totalPages = Math.ceil(availableItems.length / itemsPerPage);
+  const paginatedItems = availableItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  return (
+    <Box p="md" style={{ maxWidth: "1200px", margin: "auto" }}>
+      <Group position="center" mb="xl">
+        <Text size="xl" weight={700} color="blue">
+          {renderDepartmentLabel()} Department Inventory
+        </Text>
+      </Group>
 
       {/* Dropdown for department selection (visible for default roles) */}
       {isDefaultRole && (
@@ -151,7 +218,7 @@ export default function Inventory() {
           onChange={setSelectedDepartment}
           style={{
             marginBottom: "20px",
-            width: "70%",
+            width: "100%",
             marginLeft: "auto",
             marginRight: "auto",
           }}
@@ -159,15 +226,7 @@ export default function Inventory() {
       )}
 
       {/* Action Buttons */}
-      <Group
-        position="center"
-        style={{
-          marginBottom: "20px",
-          gap: "10px",
-          display: "flex",
-          justifyContent: "center",
-        }}
-      >
+      <Group position="apart" mb="xl" grow>
         {isDefaultRole && (
           <Button
             variant="filled"
@@ -198,388 +257,228 @@ export default function Inventory() {
         )}
       </Group>
 
-      {/* Inventory Table */}
-      <ScrollArea style={{ width: "90%", margin: "20px auto" }}>
-        <Table
-          striped
-          highlightOnHover
-          verticalSpacing="md"
-          horizontalSpacing="lg"
-          fontSize="sm"
-          style={{
-            backgroundColor: "white",
-            borderRadius: "8px",
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-            border: "1px solid #e0e0e0",
-          }}
-        >
-          <thead>
-            <tr style={{ backgroundColor: "#f8f9fa" }}>
-              <th
+      {/* Inventory Table - Only shows items with quantity > 0 */}
+      <Paper withBorder style={{ borderRadius: "8px", overflow: "hidden" }}>
+        <LoadingOverlay visible={loading} overlayBlur={2} />
+
+        <ScrollArea>
+          <Table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr
                 style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
+                  backgroundColor: "#f0f0f0",
+                  borderBottom: "2px solid #ddd",
                 }}
               >
-                Item
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
-                  textAlign: "center",
-                }}
-              >
-                Quantity
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
-                  textAlign: "right",
-                }}
-              >
-                Price
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
-                }}
-              >
-                Purchase Date
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
-                }}
-              >
-                Indent ID
-              </th>
-              <th
-                style={{
-                  padding: "16px",
-                  border: "1px solid #e0e0e0",
-                  fontWeight: 600,
-                }}
-              >
-                Specifications
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    textAlign: "center",
-                    padding: "40px",
-                    border: "1px solid #e0e0e0",
-                  }}
-                >
-                  <Text size="md" color="dimmed">
-                    Loading inventory data...
-                  </Text>
-                </td>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Item
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Quantity
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Price
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Purchase Date
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Indent ID
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Specifications
+                </th>
+                <th style={{ padding: "12px", border: "1px solid #ddd" }}>
+                  Actions
+                </th>
               </tr>
-            ) : inventoryData.length > 0 ? (
-              inventoryData.map((item, index) => (
-                <tr key={index}>
-                  <td
+            </thead>
+            <tbody>
+              {paginatedItems.length > 0 ? (
+                paginatedItems.map((item, index) => (
+                  <tr
+                    key={index}
                     style={{
-                      padding: "16px",
-                      border: "1px solid #e0e0e0",
-                      fontWeight: 500,
+                      backgroundColor: index % 2 === 0 ? "#f9f9f9" : "#fff",
+                      borderBottom: "1px solid #ddd",
                     }}
                   >
-                    {item.item_name}
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      border: "1px solid #e0e0e0",
-                      textAlign: "center",
-                    }}
-                  >
-                    <Badge
-                      color={item.quantity < 5 ? "red" : "blue"}
-                      variant="light"
-                      radius="sm"
-                    >
-                      {item.quantity}
-                    </Badge>
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      border: "1px solid #e0e0e0",
-                      textAlign: "right",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {item.price ? (
-                      <Text>₹{parseFloat(item.price).toFixed(2)}</Text>
-                    ) : (
-                      <Text color="dimmed">N/A</Text>
-                    )}
-                  </td>
-                  <td style={{ padding: "16px", border: "1px solid #e0e0e0" }}>
-                    {item.date_of_purchase ? (
-                      <Text>
-                        {new Date(item.date_of_purchase).toLocaleDateString()}
-                      </Text>
-                    ) : (
-                      <Text color="dimmed">N/A</Text>
-                    )}
-                  </td>
-                  <td style={{ padding: "16px", border: "1px solid #e0e0e0" }}>
-                    {item.indent_id || <Text color="dimmed">N/A</Text>}
-                  </td>
-                  <td
-                    style={{
-                      padding: "16px",
-                      border: "1px solid #e0e0e0",
-                      maxWidth: "200px",
-                    }}
-                  >
-                    {item.specifications ? (
-                      <Tooltip
-                        label={item.specifications}
-                        withArrow
-                        withinPortal
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      <Text weight={500}>{item.item_name}</Text>
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      <Badge
+                        color={item.quantity < 5 ? "red" : "blue"}
+                        variant="light"
+                        style={{ minWidth: "60px" }}
                       >
-                        <Text lineClamp={1} style={{ cursor: "help" }}>
-                          {item.specifications}
+                        {item.quantity}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      {item.price ? (
+                        <Text>₹{parseFloat(item.price).toFixed(2)}</Text>
+                      ) : (
+                        <Text color="dimmed">N/A</Text>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      {item.date_of_purchase ? (
+                        <Text>
+                          {new Date(item.date_of_purchase).toLocaleDateString()}
                         </Text>
+                      ) : (
+                        <Text color="dimmed">N/A</Text>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      {item.indent_id || <Text color="dimmed">N/A</Text>}
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      {item.specifications ? (
+                        <Tooltip
+                          label={item.specifications}
+                          withArrow
+                          withinPortal
+                        >
+                          <Text lineClamp={1} style={{ cursor: "help" }}>
+                            {item.specifications}
+                          </Text>
+                        </Tooltip>
+                      ) : (
+                        <Text color="dimmed">N/A</Text>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", border: "1px solid #ddd" }}>
+                      <Tooltip label="Return Item">
+                        <ActionIcon
+                          color="red"
+                          variant="outline"
+                          onClick={() => openReturnModal(item)}
+                        >
+                          <IconArrowBack size="1rem" />
+                        </ActionIcon>
                       </Tooltip>
-                    ) : (
-                      <Text color="dimmed">N/A</Text>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={7}
+                    style={{ textAlign: "center", padding: "20px" }}
+                  >
+                    <Text color="dimmed">
+                      {loading
+                        ? "Loading..."
+                        : "No available inventory items found"}
+                    </Text>
+                    {!loading && (
+                      <Button
+                        variant="light"
+                        color="blue"
+                        size="sm"
+                        mt="sm"
+                        onClick={openAddProductModal}
+                      >
+                        Add First Item
+                      </Button>
                     )}
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={6}
-                  style={{
-                    textAlign: "center",
-                    padding: "40px",
-                    border: "1px solid #e0e0e0",
-                  }}
-                >
-                  <Text size="md" color="dimmed">
-                    No inventory items found
-                  </Text>
-                  <Button
-                    variant="light"
-                    color="blue"
-                    size="sm"
-                    mt="sm"
-                    onClick={openAddProductModal}
-                  >
-                    Add First Item
-                  </Button>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </Table>
-      </ScrollArea>
+              )}
+            </tbody>
+          </Table>
+        </ScrollArea>
+      </Paper>
 
-      {/* Add Product Modal (visible to all roles) */}
-      {showAddProductModal && (
-        <>
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 1000,
-            }}
-            role="button"
-            tabIndex={0}
-            onClick={closeAddProductModal}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") closeAddProductModal();
-            }}
-            aria-label="Close Add Product Modal Background"
+      {totalPages > 1 && (
+        <Group position="center" mt="md">
+          <Pagination
+            total={totalPages}
+            page={currentPage}
+            onChange={setCurrentPage}
+            size="sm"
+            withEdges
           />
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "80%",
-              maxWidth: "600px",
-              backgroundColor: "#fff",
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-              borderRadius: "8px",
-              zIndex: 1001,
-              overflow: "hidden",
-            }}
-          >
-            <button
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                backgroundColor: "transparent",
-                border: "none",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
-              onClick={closeAddProductModal}
-              aria-label="Close Modal"
-            >
-              X
-            </button>
-            <div style={{ margin: "20px" }}>
-              <AddProduct
-                closeModal={closeAddProductModal}
-                selectedDepartment={selectedDepartment}
-                val="departments"
-                name="department_name"
-              />
-            </div>
-          </div>
-        </>
+        </Group>
       )}
 
-      {/* Transfer Product Modal (only for default roles) */}
-      {isDefaultRole && showTransferProductModal && (
-        <>
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 1000,
-            }}
-            role="button"
-            tabIndex={0}
-            onClick={closeTransferProductModal}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ")
-                closeTransferProductModal();
-            }}
-            aria-label="Close Transfer Product Modal Background"
-          />
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "80%",
-              maxWidth: "600px",
-              backgroundColor: "#fff",
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-              borderRadius: "8px",
-              zIndex: 1001,
-              overflow: "hidden",
-            }}
-          >
-            <button
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                backgroundColor: "transparent",
-                border: "none",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
-              onClick={closeTransferProductModal}
-              aria-label="Close Modal"
-            >
-              X
-            </button>
-            <div style={{ margin: "20px" }}>
-              <TransferProduct
-                closeModal={closeTransferProductModal}
-                selectedDepartment={selectedDepartment}
-              />
-            </div>
-          </div>
-        </>
-      )}
+      {/* Return Item Modal */}
+      <Modal
+        opened={showReturnModal}
+        onClose={closeReturnModal}
+        title="Return Item"
+        centered
+      >
+        {selectedReturnItem && (
+          <Box>
+            <Text size="sm" mb="md">
+              You are returning: <strong>{selectedReturnItem.item_name}</strong>
+            </Text>
+            <NumberInput
+              label="Quantity to Return"
+              description={`Max available: ${selectedReturnItem.quantity}`}
+              min={1}
+              max={selectedReturnItem.quantity}
+              value={returnQuantity}
+              onChange={(value) => setReturnQuantity(value)}
+              mb="md"
+            />
+            <Group position="right">
+              <Button variant="default" onClick={closeReturnModal}>
+                Cancel
+              </Button>
+              <Button color="red" onClick={handleReturnItem}>
+                Confirm Return
+              </Button>
+            </Group>
+          </Box>
+        )}
+      </Modal>
 
-      {/* Request Product Modal (for non-default roles) */}
-      {!isDefaultRole && showRequestProductModal && (
-        <>
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              width: "100vw",
-              height: "100vh",
-              backgroundColor: "rgba(0, 0, 0, 0.5)",
-              zIndex: 1000,
-            }}
-            role="button"
-            tabIndex={0}
-            onClick={closeRequestProductModal}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ")
-                closeRequestProductModal();
-            }}
-            aria-label="Close Request Product Modal Background"
-          />
-          <div
-            style={{
-              position: "fixed",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: "80%",
-              maxWidth: "600px",
-              backgroundColor: "#fff",
-              boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)",
-              borderRadius: "8px",
-              zIndex: 1001,
-              overflow: "hidden",
-            }}
-          >
-            <button
-              style={{
-                position: "absolute",
-                top: "10px",
-                right: "10px",
-                backgroundColor: "transparent",
-                border: "none",
-                fontSize: "16px",
-                cursor: "pointer",
-              }}
-              onClick={closeRequestProductModal}
-              aria-label="Close Modal"
-            >
-              X
-            </button>
-            <div style={{ margin: "20px" }}>
-              <RequestProduct
-                closeModal={closeRequestProductModal}
-                selectedDepartment={selectedDepartment}
-              />
-            </div>
-          </div>
-        </>
-      )}
-    </>
+      {/* Add Product Modal */}
+      <Modal
+        opened={showAddProductModal}
+        onClose={closeAddProductModal}
+        title="Add New Product"
+        size="lg"
+      >
+        <AddProduct
+          closeModal={closeAddProductModal}
+          selectedDepartment={selectedDepartment}
+          val="departments"
+          name="department_name"
+          refreshData={fetchDepartmentData}
+        />
+      </Modal>
+
+      {/* Transfer Product Modal */}
+      <Modal
+        opened={showTransferProductModal}
+        onClose={closeTransferProductModal}
+        title="Transfer Item"
+        size="lg"
+      >
+        <TransferProduct
+          closeModal={closeTransferProductModal}
+          selectedDepartment={selectedDepartment}
+          refreshData={fetchDepartmentData}
+        />
+      </Modal>
+
+      {/* Request Product Modal */}
+      <Modal
+        opened={showRequestProductModal}
+        onClose={closeRequestProductModal}
+        title="Request Product"
+        size="lg"
+      >
+        <RequestProduct
+          closeModal={closeRequestProductModal}
+          selectedDepartment={selectedDepartment}
+        />
+      </Modal>
+    </Box>
   );
 }

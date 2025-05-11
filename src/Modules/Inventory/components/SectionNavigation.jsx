@@ -9,6 +9,7 @@ import HostelInventory from "./HostelInventory";
 import Reports from "./Reports";
 import Department from "./Bdes";
 import InventoryRequests from "./InventoryRequests";
+import ReturnedItemsPage from "./ReturnedItemsPage";
 
 const sectionComponents = {
   "Overall Inventory": InventoryDashboard,
@@ -16,6 +17,7 @@ const sectionComponents = {
   Reports,
   Department,
   Requests: InventoryRequests,
+  "Returned Items": ReturnedItemsPage,
 };
 
 export default function SectionNavigation() {
@@ -26,38 +28,45 @@ export default function SectionNavigation() {
 
   const sections =
     role === "ps_admin"
-      ? ["Overall Inventory", "Section", "Department", "Requests", "Reports"]
+      ? [
+          "Overall Inventory",
+          "Section",
+          "Department",
+          "Requests",
+          "Reports",
+          "Returned Items",
+        ]
       : role === "deptadmin_ece" || role === "Junior Technician"
-        ? ["Department"]
+        ? ["Department", "Returned Items"]
         : role === "deptadmin_cse"
-          ? ["Department"]
+          ? ["Department", "Returned Items"]
           : role === "deptadmin_me"
-            ? ["Department"]
+            ? ["Department", "Returned Items"]
             : role === "deptadmin_sm"
-              ? ["Department"]
+              ? ["Department", "Returned Items"]
               : role === "deptadmin_design"
-                ? ["Department"]
+                ? ["Department", "Returned Items"]
                 : role === "Hostel_admin" || role === "hall1caretaker"
-                  ? ["Section"]
+                  ? ["Section", "Returned Items"]
                   : role === "hall3caretaker"
-                    ? ["Section"]
+                    ? ["Section", "Returned Items"]
                     : role === "hall4caretaker"
-                      ? ["Section"]
+                      ? ["Section", "Returned Items"]
                       : role === "phcaretaker"
-                        ? ["Section"]
+                        ? ["Section", "Returned Items"]
                         : role === "nhcaretaker"
-                          ? ["Section"]
+                          ? ["Section", "Returned Items"]
                           : role === "mshcaretaker"
-                            ? ["Section"]
+                            ? ["Section", "Returned Items"]
                             : role === "rspc_admin"
-                              ? ["Section"]
+                              ? ["Section", "Returned Items"]
                               : role === "SectionHead_IWD"
-                                ? ["Section"]
+                                ? ["Section", "Returned Items"]
                                 : role === "acadadmin"
-                                  ? ["Section"]
+                                  ? ["Section", "Returned Items"]
                                   : role === "VhCaretaker"
-                                    ? ["Section"]
-                                    : [];
+                                    ? ["Section", "Returned Items"]
+                                    : ["Returned Items"]; // Default fallback for any other roles
 
   const tabItems = sections.map((section) => ({ title: section }));
 
@@ -109,18 +118,74 @@ export default function SectionNavigation() {
     );
   }
 
-  // For all roles except ps_admin, directly load their page
+  // For all roles except ps_admin, directly load their first page
   if (role !== "ps_admin") {
-    const directSection = sections[0]; // only one section assigned
-    const DirectComponent = sectionComponents[directSection];
     return (
       <div style={{ marginTop: "2rem" }}>
-        {DirectComponent && <DirectComponent />}
+        <Flex justify="space-between" align="center" mt="lg">
+          <Flex
+            justify="flex-start"
+            align="center"
+            gap="1rem"
+            mt="1rem"
+            ml="lg"
+          >
+            <Button
+              onClick={() => handleArrowClick("prev")}
+              variant="default"
+              style={{ border: "none", padding: 0 }}
+              disabled={sections.length <= 1}
+            >
+              <CaretCircleLeft size={20} />
+            </Button>
+
+            <div
+              ref={tabsListRef}
+              style={{
+                overflowX: "auto",
+                whiteSpace: "nowrap",
+                flex: 1,
+              }}
+            >
+              <Tabs value={activeTab} onTabChange={handleTabChange}>
+                <Tabs.List>
+                  {tabItems.map((item, index) => (
+                    <Tabs.Tab
+                      key={index}
+                      value={`${index}`}
+                      onClick={() => navi(item.title, index)}
+                      style={{
+                        color: activeTab === `${index}` ? "#4299E1" : "",
+                        backgroundColor:
+                          activeTab === `${index}` ? "#15abff13" : "",
+                      }}
+                    >
+                      <Text>{item.title}</Text>
+                    </Tabs.Tab>
+                  ))}
+                </Tabs.List>
+              </Tabs>
+            </div>
+
+            <Button
+              onClick={() => handleArrowClick("next")}
+              variant="default"
+              style={{ border: "none", padding: 0 }}
+              disabled={sections.length <= 1}
+            >
+              <CaretCircleRight size={20} />
+            </Button>
+          </Flex>
+        </Flex>
+
+        <div style={{ marginTop: "2rem" }}>
+          {ActiveComponent && <ActiveComponent />}
+        </div>
       </div>
     );
   }
 
-  // If ps_admin, show the tab navigation
+  // If ps_admin, show the full tab navigation
   return (
     <>
       <Flex justify="space-between" align="center" mt="lg">

@@ -8,3 +8,6 @@ export const InventoryDepartments = (selectedDepartment) =>
   `${host}/inventory/api/departments/?department=${selectedDepartment}`;
 export const InventoryAdd = (val) => `${host}/inventory/api/${val}/`;
 export const InventoryTransfer = `${host}/inventory/api/transfer_product/`;
+export const InventoryReturn = `${host}/inventory/api/return-product/`;
+
+console.log(host);
